@@ -24,7 +24,7 @@
 */
 
 require_once('lib.php');
-require_once('lib/oauth/OAuth.php');
+require_once('lti/OAuth.php');
 
 // initialise database
   $db = init_db();
