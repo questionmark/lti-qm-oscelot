@@ -47,12 +47,12 @@ require_once('lti/LTI_Tool_Provider.php');
       $db = new PDO(DB_NAME, DB_USERNAME, DB_PASSWORD);
 
       $sql = 'CREATE TABLE IF NOT EXISTS ' . LTI_Data_Connector::CONSUMER_TABLE_NAME . ' ' .
-             '(consumer_key VARCHAR(255), secret VARCHAR(255), enabled TINYINT(1), ' .
+             '(consumer_key VARCHAR(200), secret VARCHAR(255), enabled TINYINT(1), ' .
              'created DATETIME, updated DATETIME, PRIMARY KEY (consumer_key))';
       $res = $db->exec($sql);
 
       $sql = 'CREATE TABLE IF NOT EXISTS ' . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-             '(consumer_key VARCHAR(255), context_id VARCHAR(255), settings TEXT, created DATETIME, updated DATETIME, ' .
+             '(consumer_key VARCHAR(200), context_id VARCHAR(100), settings TEXT, created DATETIME, updated DATETIME, ' .
              'PRIMARY KEY (consumer_key, context_id))';
       $res = $db->exec($sql);
 

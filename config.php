@@ -29,9 +29,9 @@ define('CONSUMER_SECRET', 'asecret');
 define('DB_NAME', 'sqlite:qmp-lti.sqlitedb');
 define('DB_USERNAME', '');
 define('DB_PASSWORD', '');
-define('QMWISE_URL', 'https://ondemand.questionmark.com/qmwise/399415/qmwise.asmx');
-define('SECURITY_CLIENT_ID', '399415');
-define('SECURITY_CHECKSUM', 'fa90481e6d09629ab4b87958f2922a88');
+define('QMWISE_URL', 'https://ondemand.questionmark.com/qmwise/123456/qmwise.asmx');
+define('SECURITY_CLIENT_ID', '123456');
+define('SECURITY_CHECKSUM', '434de524caad1f0bd4983c4cbf0cd0e9');
 define('DEBUG_MODE', true);
 define('ADMINISTRATOR_ROLE', 'LTI_INSTRUCTOR');
 define('WEB_PATH', '');  // enter the path starting with a "/" but without a trailing "/"; only required if the automated version does not work

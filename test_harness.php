@@ -21,6 +21,7 @@
  *
  *  Version history:
  *    1.0.01   2-May-12  Initial prototype
+ *    1.1.00   3-May-12  Added test harness
 */
 
 require_once('lib.php');

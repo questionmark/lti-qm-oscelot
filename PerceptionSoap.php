@@ -21,6 +21,7 @@
  *
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
+ *    1.1.00   3-May-12  Added test harness
 */
 
 /**
@@ -287,7 +288,9 @@ class PerceptionSoap {
          'AuthenticateExt' => 0,
          'Primary_Email' => $email,
          'First_Name' => $firstname,
-         'Last_Name' => $lastname
+         'Last_Name' => $lastname,
+         'Use_Correspondence' => 0,
+         'Authenticate_Ext' => 0
       ), SOAP_ENC_OBJECT, 'Participant', 'http://questionmark.com/QMWISe/', NULL, 'http://questionmark.com/QMWISe/');
 
     $participant = new stdClass();

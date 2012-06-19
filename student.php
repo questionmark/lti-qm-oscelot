@@ -48,7 +48,7 @@ require_once('lib.php');
 
   $err = FALSE;
 // Ensure this is a student, an assessment has been defined and the LMS will accept an outcome
-  if (!isStudent) {
+  if (!$isStudent) {
     $err = 'Not a student';
   } else if (!$assessment_id) {
     $err = 'No assignment selected';
