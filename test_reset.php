@@ -24,16 +24,15 @@
 */
 
 require_once('lib.php');
-require_once('lti/OAuth.php');
 
 // initialise database
   $db = init_db();
 
-  session_name('QMP-LTI-TEST');
+  session_name(SESSION_NAME . '-TEST');
   session_start();
   session_unset();
 
-  $res = $db->exec('DROP TABLE LTI_Outcome');
+  $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . 'LTI_Outcome');
 
   header("Location: test_harness.php");
 

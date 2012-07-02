@@ -26,7 +26,7 @@
 require_once('lib.php');
 require_once('lti/OAuth.php');
 
-  session_name('QMP-LTI-TEST');
+  session_name(SESSION_NAME . '-TEST');
   session_start();
 
   $url = $_SESSION['url'];
@@ -78,9 +78,9 @@ window.onload=doOnLoad;
 <body>
 <p>Redirecting, please wait...</p>
 <?php
-  echo '<form name="frmConnect" action="' . $_SESSION['url'] . '" method="post">' . "\n";
+  echo "<form name=\"frmConnect\" action=\"{$url}\" method=\"post\">\n";
   foreach ($params as $name => $value) {
-    echo '  <input type="hidden" name="' . $name . '" value="' . $value . '">' . "\n";
+    echo "  <input type=\"hidden\" name=\"{$name}\" value=\"{$value}\">\n";
   }
 ?>
 </form>

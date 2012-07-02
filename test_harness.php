@@ -21,16 +21,19 @@
  *
  *  Version history:
  *    1.0.01   2-May-12  Initial prototype
- *    1.1.00   3-May-12  Added test harness
 */
 
 require_once('lib.php');
 
-// initialise database
-  $db = init_db();
-
-  session_name('QMP-LTI-TEST');
+  session_name(SESSION_NAME . '-TEST');
   session_start();
+
+// Initialise database
+  $db = init_db();
+  if ($db === FALSE) {
+    header('Location: error.php');
+    exit;
+  }
 
   if ((strtoupper($_SERVER['REQUEST_METHOD']) == 'POST') && !isset($_GET['moodle_activityid'])) {
     set_session('url');
@@ -272,8 +275,6 @@ function doReset() {
 
   if ($ok) {
 ?>
-        <p>&nbsp;</p>
-
         <h2>Grades</h2>
 
         <table class="DataTable" cellpadding="0" cellspacing="0">
@@ -299,7 +300,6 @@ function doReset() {
 <?php
   }
 ?>
-        <p>&nbsp;</p>
 <?php
   $checked = '';
   if (!empty($_SESSION['debug'])) {
@@ -315,7 +315,6 @@ function doReset() {
           </div>
         </div>
 
-        <p>&nbsp;</p>
         <p>
           <input id="id_save" type="submit" value="Save data" />
           <input type="button" value="Reset data" onclick="doReset(); return false;" />&nbsp;&nbsp;&nbsp;

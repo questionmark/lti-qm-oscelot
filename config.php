@@ -24,8 +24,8 @@
 */
 
 // TODO is there a better way to configure these parameters
-define('CONSUMER_KEY', 'testing.edu');
-define('CONSUMER_SECRET', 'asecret');
+define('CONSUMER_KEY', '');
+define('CONSUMER_SECRET', '');
 define('DB_NAME', 'sqlite:qmp-lti.sqlitedb');
 define('DB_USERNAME', '');
 define('DB_PASSWORD', '');
@@ -34,6 +34,7 @@ define('SECURITY_CLIENT_ID', '123456');
 define('SECURITY_CHECKSUM', '434de524caad1f0bd4983c4cbf0cd0e9');
 define('DEBUG_MODE', true);
 define('ADMINISTRATOR_ROLE', 'LTI_INSTRUCTOR');
+define('QM_USERNAME_PREFIX', '');
 define('WEB_PATH', '');  // enter the path starting with a "/" but without a trailing "/"; only required if the automated version does not work
 
 ?>

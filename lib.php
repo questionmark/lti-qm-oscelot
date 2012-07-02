@@ -31,6 +31,9 @@ require_once('lti/LTI_Tool_Provider.php');
   date_default_timezone_set($cfg_timezone);
 
   define('SESSION_NAME', 'QMP-LTI');
+  define('INVALID_USERNAME_CHARS', '\'"&\\/£,:><');
+  define('MAX_NAME_LENGTH', 50);
+  define('MAX_EMAIL_LENGTH', 255);
   define('ASSESSMENT_SETTING', 'qmp_assessment_id');
   $LTI_ROLES = array('a' => 'Administrator',
                      'd' => 'ContentDeveloper',
@@ -38,30 +41,30 @@ require_once('lti/LTI_Tool_Provider.php');
                      't' => 'TeachingAssistant',
                      'l' => 'Learner',
                      'm' => 'Mentor');
+  define('DATA_CONNECTOR', 'QMP');
+  define('TABLE_PREFIX', '');
 
 
   function init_db() {
 
     $db = FALSE;
+
     try {
+
       $db = new PDO(DB_NAME, DB_USERNAME, DB_PASSWORD);
 
-      $sql = 'CREATE TABLE IF NOT EXISTS ' . LTI_Data_Connector::CONSUMER_TABLE_NAME . ' ' .
-             '(consumer_key VARCHAR(200), secret VARCHAR(255), enabled TINYINT(1), ' .
-             'created DATETIME, updated DATETIME, PRIMARY KEY (consumer_key))';
-      $res = $db->exec($sql);
-
-      $sql = 'CREATE TABLE IF NOT EXISTS ' . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-             '(consumer_key VARCHAR(200), context_id VARCHAR(100), settings TEXT, created DATETIME, updated DATETIME, ' .
+      $sql = 'CREATE TABLE IF NOT EXISTS ' . TABLE_PREFIX . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
+             '(consumer_key VARCHAR(255), context_id VARCHAR(255), settings TEXT, created DATETIME, updated DATETIME, ' .
              'PRIMARY KEY (consumer_key, context_id))';
       $res = $db->exec($sql);
 
-      $sql = 'CREATE TABLE IF NOT EXISTS LTI_Outcome ' .
-             '(result_sourcedid VARCHAR(255), score VARCHAR(255), created DATETIME)';
-
+      $sql = 'CREATE TABLE IF NOT EXISTS ' . TABLE_PREFIX . 'LTI_Outcome ' .
+             '(result_sourcedid VARCHAR(255), score VARCHAR(255), created DATETIME, PRIMARY KEY (result_sourcedid))';
       $res = $db->exec($sql);
 
     } catch(PDOException $e) {
+      log_error($e);
+      $_SESSION['error'] = 'Unable to connect to database';
       $db = FALSE;
     }
 
@@ -69,13 +72,18 @@ require_once('lti/LTI_Tool_Provider.php');
 
   }
 
+/*
+// For reference
+
   function reset_db() {
 
-    $res = $db->exec('DROP TABLE ' . LTI_Data_Connector::CONSUMER_TABLE_NAME);
-    $res = $db->exec('DROP TABLE ' . LTI_Data_Connector::CONTEXT_TABLE_NAME);
-    $res = $db->exec('DROP TABLE LTI_Outcome');
+    $db = new PDO(DB_NAME, DB_USERNAME, DB_PASSWORD);
+
+    $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . LTI_Data_Connector::CONTEXT_TABLE_NAME);
+    $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . 'LTI_Outcome');
 
   }
+*/
 
 /*
  * perception_soapconnect
@@ -95,7 +103,7 @@ require_once('lti/LTI_Tool_Provider.php');
           'debug'                        => DEBUG_MODE
         ));
       } catch(Exception $e) {
-        error_log('An error occured when connecting to the Perception server (code ' . $e->getCode() . '): ' . $e->getMessage());
+        log_error($e);
         $ok = FALSE;
       }
     }
@@ -110,7 +118,6 @@ require_once('lti/LTI_Tool_Provider.php');
     try {
       $admin_details = $GLOBALS['perceptionsoap']->get_administrator_by_name($username);
     } catch (Exception $e) {
-//      error_log(var_export($e, TRUE));
     }
 
     return $admin_details;
@@ -124,7 +131,7 @@ require_once('lti/LTI_Tool_Provider.php');
       $admin_details = $GLOBALS['perceptionsoap']->create_administrator_with_password($username, $firstname, $lastname, $email, $profile);
       $admin_id = $admin_details->Administrator_ID;
     } catch (Exception $e) {
-      error_log(var_export($e, TRUE));
+      log_error($e);
     }
 
     return $admin_id;
@@ -138,7 +145,7 @@ require_once('lti/LTI_Tool_Provider.php');
       $access = $GLOBALS['perceptionsoap']->get_access_administrator($username);
       $url = $access->URL;
     } catch (Exception $e) {
-      error_log(var_export($e, TRUE));
+      log_error($e);
     }
 
     return $url;
@@ -150,7 +157,7 @@ require_once('lti/LTI_Tool_Provider.php');
     try {
       $assessments = $GLOBALS['perceptionsoap']->get_assessment_tree_by_administrator($id, 0, 1);
     } catch (Exception $e) {
-      error_log(var_export($e, TRUE));
+      log_error($e);
       $assessments = FALSE;
     }
 
@@ -164,7 +171,7 @@ require_once('lti/LTI_Tool_Provider.php');
       $access = $GLOBALS['perceptionsoap']->get_access_assessment_notify($assessment_id, $participant_name, $user_id, $activity_id, $course_id, $notify_url, $home_url);
       $url = $access->URL;
     } catch (Exception $e) {
-      error_log(var_export($e, TRUE));
+      log_error($e);
       $url = FALSE;
     }
 
@@ -178,7 +185,6 @@ require_once('lti/LTI_Tool_Provider.php');
     try {
       $participant_details = $GLOBALS['perceptionsoap']->get_participant_by_name($username);
     } catch (Exception $e) {
-//      error_log(var_export($e, TRUE));
     }
 
     return $participant_details;
@@ -192,10 +198,18 @@ require_once('lti/LTI_Tool_Provider.php');
       $participant_details = $GLOBALS['perceptionsoap']->create_participant($username, $firstname, $lastname, $email);
       $participant_id = $participant_details->Participant_ID;
     } catch (Exception $e) {
-      error_log(var_export($e, TRUE));
+      log_error($e);
     }
 
     return $participant_id;
+
+  }
+
+  function log_error($e) {
+
+    $error = "Error {$e->getCode()}: {$e->getMessage()}";
+    error_log($error);
+    $_SESSION['error'] = $error;
 
   }
 
@@ -210,29 +224,16 @@ require_once('lti/LTI_Tool_Provider.php');
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>QMP: LTI</title>
-<link href="https://ondemand.questionmark.com/399415/styles/reset-min.css" rel="stylesheet" type="text/css" />
-<link href="https://ondemand.questionmark.com/399415/styles/base-min.css" rel="stylesheet" type="text/css" />
-<link href="https://ondemand.questionmark.com/399415/styles/layout.min.css" rel="stylesheet" type="text/css" />
-<link href="https://ondemand.questionmark.com/399415/styles/design.min.css" rel="stylesheet" type="text/css" />
-<link href="https://ondemand.questionmark.com/em/styles/Internal.css" type="text/css" rel="stylesheet" />
-<link href="https://ondemand.questionmark.com/em/styles/Qframe.css" type="text/css" rel="stylesheet" />
-<link href="https://ondemand.questionmark.com/em/styles/AssessmentManager.css" type="text/css" rel="stylesheet" />
+<link href="qmp-lti.css" type="text/css" rel="stylesheet" />
 </head>
 <body>
-<div><a class="skip" href="#content">Skip to content</a></div>
 <div id="Wrapper">
   <div id="HeaderWrapper">
-    <div id="TopUserBar">
-      <span id="headUserName">{$username}</span>
-    </div>
-    <a id="lnkLogo" href="https://ondemand.questionmark.com/399415/" target="_blank"><img id="logoImage" src="https://ondemand.questionmark.com/399415/images/logo.gif" alt="Questionmark" style="width: 175px; height: 32px; margin-left: 10px" /></a>
-    <span style="clear: both">&nbsp;</span>
+    <img id="logoImage" src="logo.gif" alt="Questionmark" style="width: 175px; height: 32px; margin-left: 10px" />
   </div>
   <div id="MainContentWrapper">
     <div id="ContentWrapper">
       <div id="PageContent">
-        <a id="content"></a>
-        <p>&nbsp;</p>
 EOD;
 
     echo $html;
@@ -245,14 +246,13 @@ EOD;
   function page_footer() {
 
     $html = <<<EOD
-        <p>&nbsp;</p>
       </div>
     </div>
-    <div id="FooterWrapper">
-      <span id="Copyright">
-        <a id="lnkCopyright" href="http://www.questionmark.com" target="_blank">Copyright &copy;2012 Questionmark Computing Ltd.</a>
-      </span>
-    </div>
+  </div>
+  <div id="FooterWrapper">
+    <span id="Copyright">
+      <a id="lnkCopyright" href="http://www.questionmark.com" target="_blank">Copyright &copy;2012 Questionmark Computing Ltd.</a>
+    </span>
   </div>
 </div>
 </body>

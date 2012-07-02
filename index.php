@@ -23,39 +23,41 @@
  *    1.0.00   1-May-12  Initial prototype
 */
 
-//error_reporting(E_ALL);
-//ini_set('display_errors', 1);
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 require_once('lib.php');
 
+  session_name(SESSION_NAME);
+  session_start();
+
 // initialise database
   $db = init_db();
-
-// ensure consumer record exists
-  $consumer = new LTI_Tool_Consumer(CONSUMER_KEY, $db);
-  if ($consumer->secret != CONSUMER_SECRET) {
-    $consumer->secret = CONSUMER_SECRET;
-    $consumer->enabled = TRUE;
-    $consumer->save();
+  if ($db === FALSE) {
+    header('Location: error.php');
+    exit;
   }
 
 // process launch request
-  $tool = new LTI_Tool_Provider(array('connect' => 'doLaunch'), $db);
+  $tool = new LTI_Tool_Provider('doLaunch', array(TABLE_PREFIX, $db, DATA_CONNECTOR));
   $tool->execute();
+
+  exit;
 
 // process validated connection
   function doLaunch($tool_provider) {
 
-    global $db;
+//    global $db;
 
     $consumer_key = $tool_provider->consumer->getKey();
     $context_id = $tool_provider->context->getId();
-    $username = $tool_provider->user->getId(LTI_Tool_Provider::ID_SCOPE_GLOBAL);
+    $username = QM_USERNAME_PREFIX . $tool_provider->user->getId();
 // remove invalid characters in username
-    $username = str_replace(LTI_Tool_Provider::ID_SCOPE_SEPARATOR, '-', $username);
-    $firstname = $tool_provider->user->firstname;
-    $lastname = $tool_provider->user->lastname;
-    $email = $tool_provider->user->email;
+    $username = strtr($username, INVALID_USERNAME_CHARS, str_repeat('-', strlen(INVALID_USERNAME_CHARS)));
+    $username = substr($username, 0, MAX_NAME_LENGTH);
+    $firstname = substr($tool_provider->user->firstname, 0, MAX_NAME_LENGTH);
+    $lastname = substr($tool_provider->user->lastname, 0, MAX_NAME_LENGTH);
+    $email = substr($tool_provider->user->email, 0, MAX_EMAIL_LENGTH);
     $isStudent = $tool_provider->user->isLearner();
     $result_id = $tool_provider->user->lti_result_sourcedid;
 
@@ -66,8 +68,6 @@ require_once('lib.php');
 
     if ($ok) {
 // initialise session
-      session_name(SESSION_NAME);
-      session_start();
       session_unset();
       $_SESSION['username'] = $username;
       $_SESSION['firstname'] = $firstname;

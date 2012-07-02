@@ -25,9 +25,16 @@
 
 require_once('lib.php');
 
+  session_name(SESSION_NAME);
+  session_start();
+
   page_header();
 
   echo "<p>\nSorry an error occurred; please try again.\n</p>\n";
+
+  if (isset($_SESSION['error'])) {
+    echo "<p>\n[{$_SESSION['error']}]\n</p>\n";
+  }
 
   page_footer();
 

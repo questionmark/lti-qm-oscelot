@@ -46,36 +46,35 @@ require_once('lib.php');
   $notify_url = get_root_url() . 'notify.php';
   $result_id = $_SESSION['result_id'];
 
-  $err = FALSE;
 // Ensure this is a student, an assessment has been defined and the LMS will accept an outcome
   if (!$isStudent) {
-    $err = 'Not a student';
+    $_SESSION['error'] = 'Not a student';
   } else if (!$assessment_id) {
-    $err = 'No assignment selected';
+    $_SESSION['error'] = 'No assignment selected';
   } else if (!$result_id) {
-    $err = 'No grade book column';
+    $_SESSION['error'] = 'No grade book column';
   }
 
 // Activate SOAP Connection.
-  if (!$err && !perception_soapconnect()) {
-    $err = 'Unable to initialise SOAP connection';
+  if (!isset($_SESSION['error'])) {
+    perception_soapconnect();
   }
 
 // Create participant
-  if (!$err && (($participant_details = get_participant_by_name($username)) !== FALSE)) {
+  if (!isset($_SESSION['error']) && (($participant_details = get_participant_by_name($username)) !== FALSE)) {
     $participant_id = $participant_details->Participant_ID;
-  } else if (!$err && (($participant_id = create_participant($username, $firstname, $lastname, $email)) === FALSE)) {
-    $err = 'Cannot create participant';
+  } else if (!isset($_SESSION['error'])) {
+    $participant_id = create_participant($username, $firstname, $lastname, $email);
   }
 
 // Get assessment URL
-  if (!$err && (($url = get_access_assessment_notify($assessment_id, "${firstname} {$lastname}", $result_id, $consumer_key, $context_id,
-     $notify_url, $return_url)) === FALSE)) {
-    $err = 'Cannot get assessment URL';
+  if (!isset($_SESSION['error'])) {
+    $url = get_access_assessment_notify($assessment_id, "${firstname} {$lastname}", $result_id, $consumer_key, $context_id,
+       $notify_url, $return_url);
   }
 
-  if ($err) {
-    $url = "error.php?msg={$err}";
+  if (isset($_SESSION['error'])) {
+    $url = "error.php";
   }
 
   header("Location: {$url}");

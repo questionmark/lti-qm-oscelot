@@ -36,7 +36,7 @@ require_once('lib.php');
   $score = $_POST['Percentage_Score'];
 
 // Initialise a tool consumer and context object
-  $consumer = new LTI_Tool_Consumer($consumer_key, $db);
+  $consumer = new LTI_Tool_Consumer($consumer_key, array(TABLE_PREFIX, $db, DATA_CONNECTOR));
   $context = new LTI_Context($consumer, $context_id);
 
 // Save result
