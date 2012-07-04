@@ -138,7 +138,7 @@ class PerceptionSoap {
    */
   public function create_administrator_with_password($username, $firstname, $lastname, $email, $profile) {
 
-    $password = 'qwerty'; // TODO random string
+    $password = getRandomString(20);
     $admin2 = new SoapVar(array(
          'Administrator_ID' => 0,
          'Administrator_Name' => $username,
@@ -281,7 +281,7 @@ class PerceptionSoap {
    */
   public function create_participant($username, $firstname, $lastname, $email) {
 
-    $password = 'qwerty'; // TODO random string
+    $password = getRandomString(20);
     $participant2 = new SoapVar(array(
          'Participant_Name' => $username,
          'Password' => $password,

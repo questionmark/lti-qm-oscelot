@@ -58,22 +58,6 @@ require_once('lib.php');
   page_header();
 
 ?>
-<style type="text/css">
-.row {
-  clear: left;
-}
-
-.col1 {
-  width: 20em;
-  float: left;
-}
-
-input[type="text"], input[type="checkbox"] {
-  margin-bottom: 5px;
-  width: auto;
-}
-</style>
-
 <script type="text/javascript">
 var save;
 var launch;
@@ -113,6 +97,45 @@ function doReset() {
 ?>
         <h1>LTI Connector Test Harness</h1>
 
+<?php
+  $sql = 'SELECT result_sourcedid, score, created ' .
+         'FROM LTI_Outcome ';
+  $query = $db->prepare($sql);
+  $query->execute();
+
+  $row = $query->fetch();
+
+  $ok = ($row !== FALSE);
+
+  if ($ok) {
+?>
+        <div class="grades_box">
+          <h2>Grades</h2>
+
+          <table class="DataTable" cellpadding="0" cellspacing="0">
+          <tr class="GridHeader">
+            <td class="AssessmentAuthor">Result SourcedId</td>
+            <td class="AssessmentAuthor">Score</td>
+            <td class="Created">Created</td>
+          </tr>
+<?php
+    do {
+?>
+          <tr border="1" class="GridRow">
+            <td>&nbsp;<?php echo $row['result_sourcedid']; ?></td>
+            <td>&nbsp;<?php echo $row['score']; ?></td>
+            <td>&nbsp;<?php echo $row['created']; ?></td>
+          </tr>
+<?php
+      $row = $query->fetch();
+      $ok = ($row !== FALSE);
+    } while ($ok);
+?>
+          </table>
+        </div>
+<?php
+  }
+?>
         <form action="test_harness.php" method="POST">
 
         <h2>Tool Provider Details</h2>
@@ -263,43 +286,6 @@ function doReset() {
             <input type="checkbox" name="outcomes" value="1"<?php echo $checked; ?> onchange="onChange();" />
           </div>
         </div>
-<?php
-  $sql = 'SELECT result_sourcedid, score, created ' .
-         'FROM LTI_Outcome ';
-  $query = $db->prepare($sql);
-  $query->execute();
-
-  $row = $query->fetch();
-
-  $ok = ($row !== FALSE);
-
-  if ($ok) {
-?>
-        <h2>Grades</h2>
-
-        <table class="DataTable" cellpadding="0" cellspacing="0">
-        <tr class="GridHeader">
-          <td class="AssessmentAuthor">Result SourcedId</td>
-          <td class="AssessmentAuthor">Score</td>
-          <td class="Created">Created</td>
-        </tr>
-<?php
-    do {
-?>
-        <tr border="1" class="GridRow">
-          <td>&nbsp;<?php echo $row['result_sourcedid']; ?></td>
-          <td>&nbsp;<?php echo $row['score']; ?></td>
-          <td>&nbsp;<?php echo $row['created']; ?></td>
-        </tr>
-<?php
-      $row = $query->fetch();
-      $ok = ($row !== FALSE);
-    } while ($ok);
-?>
-        </table>
-<?php
-  }
-?>
 <?php
   $checked = '';
   if (!empty($_SESSION['debug'])) {
