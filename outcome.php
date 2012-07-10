@@ -21,6 +21,7 @@
  *
  *  Version history:
  *    1.0.01   2-May-12  Initial prototype
+ *    1.2.00  10-Jul-12
 */
 
 require_once('lib.php');
@@ -33,8 +34,9 @@ require_once('lti/OAuth.php');
   if (isset($_POST['oauth_signature'])) {
 
     try {
-      $tool = new LTI_Tool_Provider('', $db);
-      $tool->consumer = new LTI_Tool_Consumer(CONSUMER_KEY, $db);
+      $data_connector = LTI_Data_Connector::getDataConnector(TABLE_PREFIX, $db, DATA_CONNECTOR);
+      $tool = new LTI_Tool_Provider('', $data_connector);
+      $tool->consumer = new LTI_Tool_Consumer(CONSUMER_KEY, $data_connector);
 
       $store = new LTI_OAuthDataStore($tool);
       $server = new OAuthServer($store);

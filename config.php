@@ -21,6 +21,7 @@
  *
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
+ *    1.2.00  10-Jul-12
 */
 
 // TODO is there a better way to configure these parameters

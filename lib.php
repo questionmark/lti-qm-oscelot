@@ -22,6 +22,7 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.1.00   3-May-12  Added test harness
+ *    1.2.00  10-Jul-12
 */
 
 require_once('config.php');
@@ -43,6 +44,7 @@ require_once('lti/LTI_Tool_Provider.php');
                      'm' => 'Mentor');
   define('DATA_CONNECTOR', 'QMP');
   define('TABLE_PREFIX', '');
+  define('PIP_FILE', 'lti.pip');
 
 
   function init_db() {
@@ -59,7 +61,7 @@ require_once('lti/LTI_Tool_Provider.php');
       $res = $db->exec($sql);
 
       $sql = 'CREATE TABLE IF NOT EXISTS ' . TABLE_PREFIX . 'LTI_Outcome ' .
-             '(result_sourcedid VARCHAR(255), score VARCHAR(255), created DATETIME, PRIMARY KEY (result_sourcedid))';
+             '(result_sourcedid VARCHAR(255), score VARCHAR(255), created DATETIME)';
       $res = $db->exec($sql);
 
     } catch(PDOException $e) {
@@ -152,10 +154,10 @@ require_once('lti/LTI_Tool_Provider.php');
 
   }
 
-  function get_assessment_tree_by_administrator($id) {
+  function get_assessment_list_by_administrator($id) {
 
     try {
-      $assessments = $GLOBALS['perceptionsoap']->get_assessment_tree_by_administrator($id, 0, 1);
+      $assessments = $GLOBALS['perceptionsoap']->get_assessment_list_by_administrator($id, 0, 1);
     } catch (Exception $e) {
       log_error($e);
       $assessments = FALSE;
@@ -165,10 +167,10 @@ require_once('lti/LTI_Tool_Provider.php');
 
   }
 
-  function get_access_assessment_notify($assessment_id, $participant_name, $user_id, $activity_id, $course_id, $notify_url, $home_url) {
+  function get_access_assessment_notify($assessment_id, $participant_name, $consumer_key, $context_id, $result_id, $notify_url, $home_url) {
 
     try {
-      $access = $GLOBALS['perceptionsoap']->get_access_assessment_notify($assessment_id, $participant_name, $user_id, $activity_id, $course_id, $notify_url, $home_url);
+      $access = $GLOBALS['perceptionsoap']->get_access_assessment_notify($assessment_id, $participant_name, $consumer_key, $context_id, $result_id, $notify_url, $home_url);
       $url = $access->URL;
     } catch (Exception $e) {
       log_error($e);

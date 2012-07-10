@@ -22,21 +22,23 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.0.01   2-May-12  Corrected GET to POST requests
+ *    1.2.00  10-Jul-12
 */
 
 require_once('lib.php');
+require_once('LTI_Data_Connector_qmp.php');
 
 // initialise database
   $db = init_db();
 
-// TODO create an LTI PIP file rather than use the Moodle version
-  $consumer_key = $_POST['moodle_activityid'];
-  $context_id = $_POST['moodle_courseid'];
-  $result_id = $_POST['moodle_userid'];
+  $consumer_key = $_POST['lti_consumer_key'];
+  $context_id = $_POST['lti_context_id'];
+  $result_id = $_POST['lti_result_id'];
   $score = $_POST['Percentage_Score'];
 
 // Initialise a tool consumer and context object
-  $consumer = new LTI_Tool_Consumer($consumer_key, array(TABLE_PREFIX, $db, DATA_CONNECTOR));
+  $data_connector = LTI_Data_Connector::getDataConnector(TABLE_PREFIX, $db, DATA_CONNECTOR);
+  $consumer = new LTI_Tool_Consumer($consumer_key, $data_connector);
   $context = new LTI_Context($consumer, $context_id);
 
 // Save result

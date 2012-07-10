@@ -22,12 +22,13 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.1.00   3-May-12  Added test harness
+ *    1.2.00  10-Jul-12
 */
 
 /**
  * PerceptionSoap
  * @author Bart Nagel
- * Accesses the various QMWise methods which will be useful for the Moodle
+ * Accesses the various QMWise methods which will be useful for the LTI
  * Perception connector project
  * Requires the QMWiseException class
  */
@@ -163,7 +164,7 @@ class PerceptionSoap {
 
   }
 
-  public function get_assessment_tree_by_administrator($admin_id, $parent_id, $only_run_from_integration) {
+  public function get_assessment_list_by_administrator($admin_id, $parent_id, $only_run_from_integration) {
 
     try {
       $list = $this->soap->GetAssessmentListByAdministrator(array(
@@ -212,20 +213,20 @@ class PerceptionSoap {
    * Perception doesn't check for one and just adds its own questionmark and
    * query string at the end.
    */
-  public function get_access_assessment_notify($assessment_id, $participant_name, $user_id, $activity_id, $course_id, $notify_url, $home_url) {
+  public function get_access_assessment_notify($assessment_id, $participant_name, $consumer_key, $context_id, $result_id, $notify_url, $home_url) {
 
     try {
       $access_assessment = $this->soap->GetAccessAssessmentNotify(array(
-        "PIP" => "moodle.pip",
+        "PIP" => PIP_FILE,
         "Assessment_ID" => $assessment_id,
         "Participant_Name" => $participant_name,
         "Notify" => $notify_url,
         "ParameterList" => array(
           "Parameter" => array(
             array("Name" => "home", "Value" => $home_url),
-            array("Name" => "moodle_userid", "Value" => $user_id),
-            array("Name" => "moodle_activityid", "Value" => $activity_id),
-            array("Name" => "moodle_courseid", "Value" => $course_id),
+            array("Name" => "lti_consumer_key", "Value" => $consumer_key),
+            array("Name" => "lti_context_id", "Value" => $context_id),
+            array("Name" => "lti_result_id", "Value" => $result_id),
           )
         )
       ));

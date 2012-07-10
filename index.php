@@ -21,12 +21,14 @@
  *
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
+ *    1.2.00  10-Jul-12
 */
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once('lib.php');
+require_once('LTI_Data_Connector_qmp.php');
 
   session_name(SESSION_NAME);
   session_start();
@@ -39,15 +41,14 @@ require_once('lib.php');
   }
 
 // process launch request
-  $tool = new LTI_Tool_Provider('doLaunch', array(TABLE_PREFIX, $db, DATA_CONNECTOR));
+  $data_connector = LTI_Data_Connector::getDataConnector(TABLE_PREFIX, $db, DATA_CONNECTOR);
+  $tool = new LTI_Tool_Provider('doLaunch', $data_connector);
   $tool->execute();
 
   exit;
 
 // process validated connection
   function doLaunch($tool_provider) {
-
-//    global $db;
 
     $consumer_key = $tool_provider->consumer->getKey();
     $context_id = $tool_provider->context->getId();
@@ -63,8 +64,7 @@ require_once('lib.php');
 
     $assessment_id = $tool_provider->context->getSetting(ASSESSMENT_SETTING);
 
-    $ok = ($context_id && $username && ($tool_provider->user->isLearner() || $tool_provider->user->isStaff()) &&
-           $tool_provider->context->hasOutcomesService());
+    $ok = ($context_id && $username && ($tool_provider->user->isLearner() || $tool_provider->user->isStaff()));
 
     if ($ok) {
 // initialise session

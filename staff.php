@@ -21,9 +21,11 @@
  *
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
+ *    1.2.00  10-Jul-12
 */
 
 require_once('lib.php');
+require_once('LTI_Data_Connector_qmp.php');
 
 // Initialise database
   $db = init_db();
@@ -41,8 +43,8 @@ require_once('lib.php');
 
   if (isset($_POST['assessment'])) {
     $_SESSION['assessment_id'] = htmlentities($_POST['assessment']);
-
-    $consumer = new LTI_Tool_Consumer($consumer_key, array(TABLE_PREFIX, $db, DATA_CONNECTOR));
+    $data_connector = LTI_Data_Connector::getDataConnector(TABLE_PREFIX, $db, DATA_CONNECTOR);
+    $consumer = new LTI_Tool_Consumer($consumer_key, $data_connector);
     $context = new LTI_Context($consumer, $context_id);
     $context->setSetting(ASSESSMENT_SETTING, $_SESSION['assessment_id']);
     $context->save();
@@ -73,7 +75,7 @@ require_once('lib.php');
   }
 
 // Get assessments
-  if ($ok && (($assessments = get_assessment_tree_by_administrator($admin_id)) === FALSE)) {
+  if ($ok && (($assessments = get_assessment_list_by_administrator($admin_id)) === FALSE)) {
     $assessments = array();
   }
 
@@ -110,6 +112,13 @@ function doReset() {
 </script>
 
         <p><a href="<?php echo $em_url; ?>" target="_blank" />Log into Enterprise Manager</a></p>
+<?php
+  if (!$_SESSION['allow_outcome']) {
+?>
+        <p><strong>No score will be saved by this connection.</strong></p>
+<?php
+  }
+?>
         <h1>Assessments</h1>
 <?php
   if ((count($assessments) > 0) && !is_null($assessments[0])) {

@@ -21,6 +21,7 @@
  *
  *  Version history:
  *    1.0.01   2-May-12  Initial prototype
+ *    1.2.00  10-Jul-12
 */
 
 require_once('lib.php');
@@ -35,7 +36,7 @@ require_once('lib.php');
     exit;
   }
 
-  if ((strtoupper($_SERVER['REQUEST_METHOD']) == 'POST') && !isset($_GET['moodle_activityid'])) {
+  if ((strtoupper($_SERVER['REQUEST_METHOD']) == 'POST') && !isset($_GET['lti_consumer_key'])) {
     set_session('url');
     set_session('key');
     set_session('secret');
