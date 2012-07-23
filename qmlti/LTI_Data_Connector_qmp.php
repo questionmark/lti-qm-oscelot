@@ -21,7 +21,7 @@
  *
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
- *    1.2.00  10-Jul-12
+ *    1.2.00  23-Jul-12
 */
 
 ###
@@ -79,6 +79,11 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Tool_Consumer_delete($consumer) {
 
+// Delete any nonce values for this consumer
+    $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME;
+    $query = $this->db->prepare($sql);
+    $query->execute();
+
     return TRUE;
 
   }
@@ -103,13 +108,11 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Context_load($context) {
 
-    $key = $context->getKey();
     $id = $context->getId();
-    $sql = 'SELECT consumer_key, context_id, settings, created, updated ' .
+    $sql = 'SELECT context_id, settings, created, updated ' .
            'FROM ' .$this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-           'WHERE (consumer_key = :key) AND (context_id = :id)';
+           'WHERE context_id = :id';
     $query = $this->db->prepare($sql);
-    $query->bindValue('key', $key, PDO::PARAM_STR);
     $query->bindValue('id', $id, PDO::PARAM_STR);
     $query->execute();
 
@@ -145,9 +148,8 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
     $settingsValue = serialize($context->settings);
     if (is_null($context->created)) {
       $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-             '(consumer_key, context_id, settings, created, updated) VALUES (:key, :id, :settings, :created, :updated)';
+             '(context_id, settings, created, updated) VALUES (:id, :settings, :created, :updated)';
       $query = $this->db->prepare($sql);
-      $query->bindValue('key', $context->getKey(), PDO::PARAM_STR);
       $query->bindValue('id', $context->getId(), PDO::PARAM_STR);
       $query->bindValue('settings', $settingsValue, PDO::PARAM_INT);
       $query->bindValue('created', $now, PDO::PARAM_STR);
@@ -155,9 +157,8 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
     } else {
       $sql = 'UPDATE ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
              'SET settings = :settings, updated = :updated ' .
-             'WHERE (consumer_key = :key) AND (context_id = :id)';
+             'WHERE context_id = :id';
       $query = $this->db->prepare($sql);
-      $query->bindValue('key', $context->getKey(), PDO::PARAM_STR);
       $query->bindValue('id', $context->getId(), PDO::PARAM_STR);
       $query->bindValue('settings', $settingsValue, PDO::PARAM_STR);
       $query->bindValue('updated', $now, PDO::PARAM_STR);
@@ -178,9 +179,8 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 
 // Delete context
     $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-           'WHERE consumer_key = :key AND context_id = :id';
+           'WHERE context_id = :id';
     $query = $this->db->prepare($sql);
-    $query->bindValue('key', $key, PDO::PARAM_STR);
     $query->bindValue('id', $id, PDO::PARAM_STR);
     $ok = $query->execute();
 
@@ -225,7 +225,32 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Consumer_Nonce_load($nonce) {
 
-    return FALSE;
+#
+### Delete any expired nonce values
+#
+    $now = date('Y-m-d H:i:s', time());
+    $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' WHERE expires <= :now';
+    $query = $this->db->prepare($sql);
+    $query->bindValue('now', $now, PDO::PARAM_STR);
+    $query->execute();
+
+#
+### load the nonce
+#
+    $key = $nonce->getKey();
+    $value = $nonce->getValue();
+    $sql = 'SELECT value AS T FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' WHERE value = :value';
+    $query = $this->db->prepare($sql);
+    $query->bindValue('value', $value, PDO::PARAM_STR);
+    $ok = $query->execute();
+    if ($ok) {
+      $row = $query->fetch();
+      if ($row === FALSE) {
+        $ok = FALSE;
+      }
+    }
+
+    return $ok;
 
   }
 
@@ -234,7 +259,15 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Consumer_Nonce_save($nonce) {
 
-    return TRUE;
+    $value = $nonce->getValue();
+    $expires = date('Y-m-d H:i:s', $nonce->expires);
+    $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' (value, expires) VALUES (:value, :expires)';
+    $query = $this->db->prepare($sql);
+    $query->bindValue('value', $value, PDO::PARAM_STR);
+    $query->bindValue('expires', $expires, PDO::PARAM_STR);
+    $ok = $query->execute();
+
+    return $ok;
 
   }
 
@@ -248,7 +281,7 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Context_Share_Key_load($share_key) {
 
-    return TRUE;
+    return FALSE;
 
   }
 

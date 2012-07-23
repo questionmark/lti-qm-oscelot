@@ -22,7 +22,7 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.1.00   3-May-12  Added test harness
- *    1.2.00  10-Jul-12
+ *    1.2.00  23-Jul-12
 */
 
 require_once('lib.php');
@@ -39,9 +39,8 @@ require_once('lib.php');
   $lastname = $_SESSION['lastname'];
   $email = $_SESSION['email'];
   $return_url = $_SESSION['lti_return_url'];
-// TODO set a more appropriate redirect URL when an assessment is completed
   if (!$return_url) {
-    $return_url = get_root_url() . 'error.php';
+    $return_url = get_root_url() . 'return.php';
   }
   $isStudent = $_SESSION['isStudent'];
   $notify_url = get_root_url() . 'notify.php';

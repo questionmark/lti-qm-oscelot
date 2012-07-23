@@ -22,7 +22,7 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.1.00   3-May-12  Added test harness
- *    1.2.00  10-Jul-12
+ *    1.2.00  23-Jul-12
 */
 
 /**

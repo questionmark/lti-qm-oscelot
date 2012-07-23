@@ -22,7 +22,7 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.1.00   3-May-12  Added test harness
- *    1.2.00  10-Jul-12
+ *    1.2.00  23-Jul-12
 */
 
 require_once('config.php');
@@ -56,8 +56,13 @@ require_once('lti/LTI_Tool_Provider.php');
       $db = new PDO(DB_NAME, DB_USERNAME, DB_PASSWORD);
 
       $sql = 'CREATE TABLE IF NOT EXISTS ' . TABLE_PREFIX . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-             '(consumer_key VARCHAR(255), context_id VARCHAR(255), settings TEXT, created DATETIME, updated DATETIME, ' .
-             'PRIMARY KEY (consumer_key, context_id))';
+             '(context_id VARCHAR(100), settings TEXT, created DATETIME, updated DATETIME, ' .
+             'PRIMARY KEY (context_id))';
+      $res = $db->exec($sql);
+
+      $sql = 'CREATE TABLE IF NOT EXISTS ' . TABLE_PREFIX . LTI_Data_Connector::NONCE_TABLE_NAME . ' ' .
+             '(value VARCHAR(32) NOT NULL, expires DATETIME NOT NULL, ' .
+             'PRIMARY KEY (value))';
       $res = $db->exec($sql);
 
       $sql = 'CREATE TABLE IF NOT EXISTS ' . TABLE_PREFIX . 'LTI_Outcome ' .
@@ -82,6 +87,7 @@ require_once('lti/LTI_Tool_Provider.php');
     $db = new PDO(DB_NAME, DB_USERNAME, DB_PASSWORD);
 
     $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . LTI_Data_Connector::CONTEXT_TABLE_NAME);
+    $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . LTI_Data_Connector::NONCE_TABLE_NAME);
     $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . 'LTI_Outcome');
 
   }

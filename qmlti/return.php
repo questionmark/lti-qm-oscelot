@@ -24,18 +24,28 @@
  *    1.2.00  23-Jul-12
 */
 
-// TODO is there a better way to configure these parameters
-define('CONSUMER_KEY', '');
-define('CONSUMER_SECRET', '');
-define('DB_NAME', 'sqlite:qmp-lti.sqlitedb');
-define('DB_USERNAME', '');
-define('DB_PASSWORD', '');
-define('QMWISE_URL', 'https://ondemand.questionmark.com/qmwise/123456/qmwise.asmx');
-define('SECURITY_CLIENT_ID', '123456');
-define('SECURITY_CHECKSUM', '434de524caad1f0bd4983c4cbf0cd0e9');
-define('DEBUG_MODE', true);
-define('ADMINISTRATOR_ROLE', 'LTI_INSTRUCTOR');
-define('QM_USERNAME_PREFIX', '');
-define('WEB_PATH', '');  // enter the path starting with a "/" but without a trailing "/"; only required if the automated version does not work
+require_once('lib.php');
+
+  session_name(SESSION_NAME);
+  session_start();
+
+  page_header();
+?>
+<script type="text/javascript">
+<!--
+function doOnLoad() {
+  if (top.location != location) {
+    var el = document.getElementById('close');
+    el.style.display = 'block';
+  }
+}
+window.onload=doOnLoad;
+// -->
+</script>
+<?php
+  echo "<p>\nYour assessment has been completed.\n</p>\n";
+  echo "\n<p><input id=\"close\" type=\"button\" value=\"Close window\" onclick=\"window.close();\" style=\"display: none;\" /></p>\n";
+
+  page_footer();
 
 ?>

@@ -21,7 +21,7 @@
  *
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
- *    1.2.00  10-Jul-12
+ *    1.2.00  23-Jul-12
 */
 
 require_once('lib.php');
@@ -89,6 +89,7 @@ require_once('LTI_Data_Connector_qmp.php');
 ?>
 
 <script type="text/javascript">
+<!--
 function doChange(id) {
   doReset();
   var el = document.getElementById(id);
@@ -109,6 +110,7 @@ function doReset() {
     }
   }
 }
+// -->
 </script>
 
         <p><a href="<?php echo $em_url; ?>" target="_blank" />Log into Enterprise Manager</a></p>

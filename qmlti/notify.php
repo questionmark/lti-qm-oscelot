@@ -22,7 +22,7 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.0.01   2-May-12  Corrected GET to POST requests
- *    1.2.00  10-Jul-12
+ *    1.2.00  23-Jul-12
 */
 
 require_once('lib.php');
