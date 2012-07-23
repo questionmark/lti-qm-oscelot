@@ -127,7 +127,9 @@ EOD;
   $query->bindValue('id', $result_id, PDO::PARAM_STR);
   $query->bindValue('score', $score, PDO::PARAM_STR);
   $query->bindValue('created', $now, PDO::PARAM_STR);
-  $ok = $query->execute();
+  if (!$query->execute()) {
+    error_log("Error saving outcome of {$score} for {$result_id}");
+  }
 
   header('Content-Type: application/xml');
   echo $response;

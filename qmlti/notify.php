@@ -45,6 +45,8 @@ require_once('LTI_Data_Connector_qmp.php');
   $outcome = new LTI_Outcome($result_id);
   $outcome->setValue($score);
   $outcome->type = 'percentage';
-  $ok = $context->doOutcomesService(LTI_Context::EXT_WRITE, $outcome);
+  if (!$context->doOutcomesService(LTI_Context::EXT_WRITE, $outcome)) {
+    error_log("Error saving outcome of {$score} for {$result_id}");
+  }
 
 ?>
