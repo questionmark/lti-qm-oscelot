@@ -52,6 +52,7 @@ require_once('LTI_Data_Connector_qmp.php');
 
     $consumer_key = $tool_provider->consumer->getKey();
     $context_id = $tool_provider->context->getId();
+    $supportsOutcomes = $tool_provider->context->hasOutcomesService();
     $username = QM_USERNAME_PREFIX . $tool_provider->user->getId();
 // remove invalid characters in username
     $username = strtr($username, INVALID_USERNAME_CHARS, str_repeat('-', strlen(INVALID_USERNAME_CHARS)));
@@ -79,6 +80,7 @@ require_once('LTI_Data_Connector_qmp.php');
       $_SESSION['assessment_id'] = $assessment_id;
       $_SESSION['lti_return_url'] = $tool_provider->return_url;
       $_SESSION['result_id'] = $result_id;
+      $_SESSION['allow_outcome'] = $supportsOutcomes;
 // set redirect URL
       if ($isStudent) {
         $page = 'student';
