@@ -28,7 +28,8 @@
 // General settings
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-define('DEBUG_MODE', true);
+define('DEBUG_MODE', FALSE);
+define('SECURE_COOKIE_ONLY', FALSE);
 define('ADMINISTRATOR_ROLE', 'LTI_INSTRUCTOR');
 define('WEB_PATH', '');  // enter the path starting with a "/" but without a trailing "/"; only required if the automated version does not work
 define('TABLE_PREFIX', '');  // optional prefix added to standard LTI database table names (allowing multiple installations to share the same database schema)

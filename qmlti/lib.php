@@ -29,8 +29,16 @@
 require_once('config.php');
 require_once('lti/LTI_Tool_Provider.php');
 
+// Ensure timezone is set (default to UTC)
   $cfg_timezone = date_default_timezone_get();
   date_default_timezone_set($cfg_timezone);
+
+// Set secure cookie mode
+  $secure = NULL;
+  if (SECURE_COOKIE_ONLY) {
+    $secure = TRUE;
+  }
+  session_set_cookie_params(0, NULL, NULL, $secure, TRUE);
 
   define('SESSION_NAME', 'QMP-LTI');  // name of session cookie
   define('INVALID_USERNAME_CHARS', '\'"&\\/£,:><');  // characters not allowed in QM usernames
