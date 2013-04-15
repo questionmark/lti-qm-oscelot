@@ -20,24 +20,19 @@
  *  Contact: info@questionmark.com
  *
  *  Version history:
- *    1.0.00   1-May-12  Initial prototype
- *    1.2.00  23-Jul-12
- *    2.0.00  18-Feb-13
+ *    2.0.00  18-Feb-13  Added to release
 */
 
-require_once('lib.php');
+  $file = 'lti.pip';
 
-  session_name(SESSION_NAME);
-  session_start();
-
-  page_header();
-
-  echo "        <p>\nSorry an error occurred; please try again.\n</p>\n";
-
-  if (isset($_SESSION['error'])) {
-    echo "        <p>\n[{$_SESSION['error']}]\n</p>\n";
-  }
-
-  page_footer(isset($_SESSION['frame']) && $_SESSION['frame']);
-
-?>
+  header('Content-Description: File Transfer');
+  header('Content-Type: application/octet-stream');
+  header('Content-Disposition: attachment; filename=' . $file);
+  header('Content-Transfer-Encoding: binary');
+  header('Expires: 0');
+  header('Cache-Control: must-revalidate');
+  header('Pragma: public');
+  header('Content-Length: ' . filesize($file));
+  ob_clean();
+  flush();
+  readfile($file);

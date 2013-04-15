@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
  *    1.0.00   1-May-12  Initial prototype
  *    1.1.00   3-May-12  Added test harness
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13
 */
 
 require_once('lib.php');
@@ -32,7 +33,7 @@ require_once('lib.php');
 
 // Get data from session
   $consumer_key = $_SESSION['consumer_key'];
-  $context_id = $_SESSION['context_id'];
+  $resource_link_id = $_SESSION['resource_link_id'];
   $assessment_id = $_SESSION['assessment_id'];
   $username = $_SESSION['username'];
   $firstname = $_SESSION['firstname'];
@@ -69,7 +70,7 @@ require_once('lib.php');
 
 // Get assessment URL
   if (!isset($_SESSION['error'])) {
-    $url = get_access_assessment_notify($assessment_id, "${firstname} {$lastname}", $consumer_key, $context_id, $result_id,
+    $url = get_access_assessment_notify($assessment_id, "${firstname} {$lastname}", $consumer_key, $resource_link_id, $result_id,
        $notify_url, $return_url);
   }
 

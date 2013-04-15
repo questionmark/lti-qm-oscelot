@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
  *  Version history:
  *    1.0.01   2-May-12  Initial prototype
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13
 */
 
 require_once('lib.php');
@@ -30,11 +31,12 @@ require_once('lib.php');
   session_start();
 
 // Initialise database
-  $db = init_db();
+  $db = open_db();
   if ($db === FALSE) {
     header('Location: error.php');
     exit;
   }
+  init_db($db);
 
   if ((strtoupper($_SERVER['REQUEST_METHOD']) == 'POST') && !isset($_GET['lti_consumer_key'])) {
     set_session('url');
@@ -56,10 +58,9 @@ require_once('lib.php');
     init_data();
   }
 
-  page_header();
-
-?>
+  $script = <<< EOD
 <script type="text/javascript">
+<!--
 var save;
 var launch;
 window.onload = onLoad;
@@ -86,7 +87,14 @@ function doReset() {
     location.href = 'test_reset.php';
   }
 }
+// -->
 </script>
+
+EOD;
+
+  page_header($script);
+
+?>
 <?php
   if (isset($_GET['lti_msg'])) {
     echo "<p style=\"font-weight: bold;\">\n{$_GET['lti_msg']}\n</p>\n";
@@ -100,7 +108,8 @@ function doReset() {
 
 <?php
   $sql = 'SELECT result_sourcedid, score, created ' .
-         'FROM LTI_Outcome ';
+         'FROM ' . TABLE_PREFIX . 'lti_outcome ' .
+         'ORDER BY created DESC';
   $query = $db->prepare($sql);
   $query->execute();
 
@@ -146,7 +155,7 @@ function doReset() {
             Launch URL *
           </div>
           <div class="col2">
-            <input type="text" id="id_url" name="url" value="<?php echo htmlentities($_SESSION['url']); ?>" size="50" onchange="onChange();" />
+            <input type="text" id="id_url" name="url" value="<?php echo htmlentities($_SESSION['url']); ?>" size="75" onchange="onChange();" />
           </div>
         </div>
         <div class="row">
@@ -154,7 +163,7 @@ function doReset() {
             Consumer key *
           </div>
           <div class="col2">
-            <input type="text" id="id_key" name="key" value="<?php echo htmlentities($_SESSION['key']); ?>" size="20" maxlength="255" onchange="onChange();" />
+            <input type="text" id="id_key" name="key" value="<?php echo htmlentities($_SESSION['key']); ?>" size="60" maxlength="255" onchange="onChange();" />
           </div>
         </div>
         <div class="row">
@@ -162,11 +171,11 @@ function doReset() {
             Shared secret
           </div>
           <div class="col2">
-            <input type="text" name="secret" value="<?php echo htmlentities($_SESSION['secret']); ?>" size="20" maxlength="255" onchange="onChange();" />
+            <input type="text" name="secret" value="<?php echo htmlentities($_SESSION['secret']); ?>" size="60" maxlength="255" onchange="onChange();" />
           </div>
         </div>
 
-        <h2>Context and Resource Details</h2>
+        <h2>Context and Resource Link Details</h2>
 
         <div class="row">
           <div class="col1">
@@ -178,7 +187,7 @@ function doReset() {
         </div>
         <div class="row">
           <div class="col1">
-            Resource ID
+            Resource Link ID
           </div>
           <div class="col2">
             <input type="text" name="rid" value="<?php echo htmlentities($_SESSION['rid']); ?>" size="10" maxlength="255" onchange="onChange();" />

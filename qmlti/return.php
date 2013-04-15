@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13  Moved script into page header
 */
 
 require_once('lib.php');
@@ -29,8 +30,7 @@ require_once('lib.php');
   session_name(SESSION_NAME);
   session_start();
 
-  page_header();
-?>
+  $script = <<< EOD
 <script type="text/javascript">
 <!--
 function doOnLoad() {
@@ -42,10 +42,12 @@ function doOnLoad() {
 window.onload=doOnLoad;
 // -->
 </script>
+
+EOD;
+  page_header($script);
+?>
+        <p>Your assessment has been completed.</p>
+        <p><input id="close" type="button" value="Close window" onclick="window.close();" style="display: none;" /></p>
 <?php
-  echo "<p>\nYour assessment has been completed.\n</p>\n";
-  echo "\n<p><input id=\"close\" type=\"button\" value=\"Close window\" onclick=\"window.close();\" style=\"display: none;\" /></p>\n";
-
   page_footer();
-
 ?>

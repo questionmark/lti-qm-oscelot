@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
  *    1.0.00   1-May-12  Initial prototype
  *    1.1.00   3-May-12  Added test harness
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13
 */
 
 /**
@@ -114,6 +115,22 @@ class PerceptionSoap {
   }
 
   /**
+   * get_about
+   * used to check credentials provided by user
+   */
+  public function get_about() {
+
+    try {
+      $about = $this->soap->GetAbout();
+    } catch(SoapFault $e) {
+      throw new QMWiseException($e);
+    }
+
+    return TRUE;
+
+  }
+
+  /**
    * get_administrator_by_name ($username)
    * Get an administrator's details from perception,
    * we are especially interested in administrator id
@@ -176,7 +193,9 @@ class PerceptionSoap {
       throw new QMWiseException($e);
     }
 
-    if (!is_array($list->AssessmentList->Assessment)) {
+    if (!isset($list->AssessmentList->Assessment)) {
+      return array();
+    } else if (!is_array($list->AssessmentList->Assessment)) {
       return array($list->AssessmentList->Assessment);
     } else {
       return $list->AssessmentList->Assessment;
@@ -213,7 +232,7 @@ class PerceptionSoap {
    * Perception doesn't check for one and just adds its own questionmark and
    * query string at the end.
    */
-  public function get_access_assessment_notify($assessment_id, $participant_name, $consumer_key, $context_id, $result_id, $notify_url, $home_url) {
+  public function get_access_assessment_notify($assessment_id, $participant_name, $consumer_key, $resource_link_id, $result_id, $notify_url, $home_url) {
 
     try {
       $access_assessment = $this->soap->GetAccessAssessmentNotify(array(
@@ -225,7 +244,7 @@ class PerceptionSoap {
           "Parameter" => array(
             array("Name" => "home", "Value" => $home_url),
             array("Name" => "lti_consumer_key", "Value" => $consumer_key),
-            array("Name" => "lti_context_id", "Value" => $context_id),
+            array("Name" => "lti_context_id", "Value" => $resource_link_id),
             array("Name" => "lti_result_id", "Value" => $result_id),
           )
         )

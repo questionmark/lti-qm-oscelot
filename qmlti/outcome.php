@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,13 +22,14 @@
  *  Version history:
  *    1.0.01   2-May-12  Initial prototype
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13
 */
 
 require_once('lib.php');
 require_once('lti/OAuth.php');
 
 // initialise database
-  $db = init_db();
+  $db = open_db();
 
   $ok = TRUE;
   if (isset($_POST['oauth_signature'])) {
@@ -36,7 +37,7 @@ require_once('lti/OAuth.php');
     try {
       $data_connector = LTI_Data_Connector::getDataConnector(TABLE_PREFIX, $db, DATA_CONNECTOR);
       $tool = new LTI_Tool_Provider('', $data_connector);
-      $tool->consumer = new LTI_Tool_Consumer(CONSUMER_KEY, $data_connector);
+      $tool->consumer = new LTI_Tool_Consumer($_POST['oauth_consumer_key'], $data_connector);
 
       $store = new LTI_OAuthDataStore($tool);
       $server = new OAuthServer($store);
@@ -121,7 +122,7 @@ EOD;
   $time = time();
   $now = date("Y-m-d H:i:s", $time);
 
-  $sql = 'INSERT INTO LTI_Outcome ' .
+  $sql = 'INSERT INTO ' . TABLE_PREFIX . 'lti_outcome ' .
          '(result_sourcedid, score, created) VALUES (:id, :score, :created)';
   $query = $db->prepare($sql);
   $query->bindValue('id', $result_id, PDO::PARAM_STR);
