@@ -97,10 +97,10 @@ EOD;
 ?>
 <?php
   if (isset($_GET['lti_msg'])) {
-    echo "<p style=\"font-weight: bold;\">\n{$_GET['lti_msg']}\n</p>\n";
+    echo '<p style="font-weight: bold;">' . htmlentities($_GET['lti_msg']) . "</p>\n";
   }
   if (isset($_GET['lti_errormsg'])) {
-    echo "<p style=\"font-weight: bold; color: #f00;\">\n{$_GET['lti_errormsg']}\n</p>\n";
+    echo '<p style="font-weight: bold; color: #f00;">' . htmlentities($_GET['lti_errormsg']) . "</p>\n";
   }
 
 ?>
