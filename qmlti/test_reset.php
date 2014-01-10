@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,18 +22,19 @@
  *  Version history:
  *    1.0.01   2-May-12  Initial prototype
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13
 */
 
 require_once('lib.php');
 
 // initialise database
-  $db = init_db();
+  $db = open_db();
 
   session_name(SESSION_NAME . '-TEST');
   session_start();
   session_unset();
 
-  $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . 'LTI_Outcome');
+  $res = $db->exec('DROP TABLE ' . TABLE_PREFIX . 'lti_outcome');
 
   header("Location: test_harness.php");
 

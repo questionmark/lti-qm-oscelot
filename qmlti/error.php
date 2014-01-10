@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13
 */
 
 require_once('lib.php');
@@ -31,12 +32,12 @@ require_once('lib.php');
 
   page_header();
 
-  echo "<p>\nSorry an error occurred; please try again.\n</p>\n";
+  echo "        <p>\nSorry an error occurred; please try again.\n</p>\n";
 
   if (isset($_SESSION['error'])) {
-    echo "<p>\n[{$_SESSION['error']}]\n</p>\n";
+    echo "        <p>\n[{$_SESSION['error']}]\n</p>\n";
   }
 
-  page_footer();
+  page_footer(isset($_SESSION['frame']) && $_SESSION['frame']);
 
 ?>

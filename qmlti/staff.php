@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,19 +22,20 @@
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13  Moved script into page header
 */
 
 require_once('lib.php');
 require_once('LTI_Data_Connector_qmp.php');
 
 // Initialise database
-  $db = init_db();
+  $db = open_db();
 
   session_name(SESSION_NAME);
   session_start();
 
   $consumer_key = $_SESSION['consumer_key'];
-  $context_id = $_SESSION['context_id'];
+  $resource_link_id = $_SESSION['resource_link_id'];
   $username = $_SESSION['username'];
   $firstname = $_SESSION['firstname'];
   $lastname = $_SESSION['lastname'];
@@ -45,9 +46,9 @@ require_once('LTI_Data_Connector_qmp.php');
     $_SESSION['assessment_id'] = htmlentities($_POST['assessment']);
     $data_connector = LTI_Data_Connector::getDataConnector(TABLE_PREFIX, $db, DATA_CONNECTOR);
     $consumer = new LTI_Tool_Consumer($consumer_key, $data_connector);
-    $context = new LTI_Context($consumer, $context_id);
-    $context->setSetting(ASSESSMENT_SETTING, $_SESSION['assessment_id']);
-    $context->save();
+    $resource_link = new LTI_Resource_Link($consumer, $resource_link_id);
+    $resource_link->setSetting(ASSESSMENT_SETTING, $_SESSION['assessment_id']);
+    $resource_link->save();
   }
   $assessment_id = $_SESSION['assessment_id'];
 
@@ -84,10 +85,7 @@ require_once('LTI_Data_Connector_qmp.php');
     exit;
   }
 
-  page_header($username);
-
-?>
-
+  $script = <<< EOD
 <script type="text/javascript">
 <!--
 function doChange(id) {
@@ -113,6 +111,9 @@ function doReset() {
 // -->
 </script>
 
+EOD;
+  page_header($script);
+?>
         <p><a href="<?php echo $em_url; ?>" target="_blank" />Log into Enterprise Manager</a></p>
 <?php
   if (!$_SESSION['allow_outcome']) {
@@ -144,7 +145,7 @@ function doReset() {
       }
 ?>
         <tr class="GridRow">
-          <td><img src="exclamation.png" alt="Unsaved changed" title="Unsaved changed" class="hide" id="img<?php echo $i; ?>" />&nbsp;<input type="radio" name="assessment" value="<?php echo $assessment->Assessment_ID; ?>"<?php echo $selected; ?> /></td>
+          <td><img src="images/exclamation.png" alt="Unsaved change" title="Unsaved change" class="hide" id="img<?php echo $i; ?>" />&nbsp;<input type="radio" name="assessment" value="<?php echo $assessment->Assessment_ID; ?>"<?php echo $selected; ?> /></td>
           <td><?php echo $assessment->Session_Name; ?></td>
           <td><?php echo $assessment->Author; ?></td>
           <td><?php echo $assessment->Modified_Date; ?></td>
@@ -159,9 +160,10 @@ function doReset() {
         </form>
 <?php
   } else {
-    echo "<p>\nNo assessments available.\n</p>\n";
+?>
+        <p>No assessments available.</p>
+<?php
   }
 
   page_footer();
-
 ?>

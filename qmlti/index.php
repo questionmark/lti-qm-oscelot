@@ -1,7 +1,7 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,80 +20,211 @@
  *  Contact: info@questionmark.com
  *
  *  Version history:
- *    1.0.00   1-May-12  Initial prototype
- *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13  Added to release (old index.php renamed to launch.php with backwards compatible support)
 */
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Check if this is a launch request for backwards compatibility
+  if (isset($_POST['oauth_consumer_key'])) {
+    require_once('launch.php');
+    exit;
+  }
+
 
 require_once('lib.php');
-require_once('LTI_Data_Connector_qmp.php');
 
   session_name(SESSION_NAME);
   session_start();
 
 // initialise database
-  $db = init_db();
-  if ($db === FALSE) {
+  $db = open_db();
+  $ok = ($db !== FALSE);
+  if (!$ok) {
+    $_SESSION['error'] = 'Unable to open database.';
+  } else {
+    $ok = init_db($db);
+    if (!$ok) {
+      $_SESSION['error'] = 'Unable to initialize database.';
+    }
+  }
+  if ($ok && defined('CONSUMER_KEY')) {
+    $_SESSION['error'] = 'Your configuration settings have been pre-defined.';
+    $ok = FALSE;
+  }
+  if (!$ok) {
+    $_SESSION['frame'] = TRUE;
     header('Location: error.php');
     exit;
   }
 
-// process launch request
-  $data_connector = LTI_Data_Connector::getDataConnector(TABLE_PREFIX, $db, DATA_CONNECTOR);
-  $tool = new LTI_Tool_Provider('doLaunch', $data_connector);
-  $tool->execute();
+  $customer = array();
 
-  exit;
-
-// process validated connection
-  function doLaunch($tool_provider) {
-
-    $consumer_key = $tool_provider->consumer->getKey();
-    $context_id = $tool_provider->context->getId();
-    $supportsOutcomes = $tool_provider->context->hasOutcomesService();
-    $username = QM_USERNAME_PREFIX . $tool_provider->user->getId();
-// remove invalid characters in username
-    $username = strtr($username, INVALID_USERNAME_CHARS, str_repeat('-', strlen(INVALID_USERNAME_CHARS)));
-    $username = substr($username, 0, MAX_NAME_LENGTH);
-    $firstname = substr($tool_provider->user->firstname, 0, MAX_NAME_LENGTH);
-    $lastname = substr($tool_provider->user->lastname, 0, MAX_NAME_LENGTH);
-    $email = substr($tool_provider->user->email, 0, MAX_EMAIL_LENGTH);
-    $isStudent = $tool_provider->user->isLearner();
-    $result_id = $tool_provider->user->lti_result_sourcedid;
-
-    $assessment_id = $tool_provider->context->getSetting(ASSESSMENT_SETTING);
-
-    $ok = ($context_id && $username && ($tool_provider->user->isLearner() || $tool_provider->user->isStaff()));
-
-    if ($ok) {
-// initialise session
-      session_unset();
-      $_SESSION['username'] = $username;
-      $_SESSION['firstname'] = $firstname;
-      $_SESSION['lastname'] = $lastname;
-      $_SESSION['email'] = $email;
-      $_SESSION['isStudent'] = $isStudent;
-      $_SESSION['consumer_key'] = $consumer_key;
-      $_SESSION['context_id'] = $context_id;
-      $_SESSION['assessment_id'] = $assessment_id;
-      $_SESSION['lti_return_url'] = $tool_provider->return_url;
-      $_SESSION['result_id'] = $result_id;
-      $_SESSION['allow_outcome'] = $supportsOutcomes;
-// set redirect URL
-      if ($isStudent) {
-        $page = 'student';
+  if (strtoupper($_SERVER['REQUEST_METHOD']) == 'POST') {
+    $action = $_POST['action'];
+    $customer['customer_id'] = getCustomerId($_POST['customer_id']);
+    $customer['qmwise_client_id'] = $_POST['qmwise_client_id'];
+    $customer['qmwise_checksum'] = $_POST['qmwise_checksum'];
+    $ok = checkCustomer($customer);
+    if (!$ok) {
+      $message = '*** ERROR *** Unable to confirm QMWISe credentials, please check data and try again.';
+    } else if ($action == 'Delete') {
+      if (deleteCustomer($db, $customer)) {
+        $message = '*** SUCCESS *** Access to the LTI Connector App has been removed.';
+        $customer = array();
+        $customer['customer_id'] = '';
+        $customer['qmwise_client_id'] = '';
+        $customer['qmwise_checksum'] = '';
       } else {
-        $page = 'staff';
+        $message = '*** ERROR *** Unable to remove customer, please check data and try again.';
       }
-      $ok = get_root_url() . "{$page}.php";
+    } else if ($action != 'Configure') {
+      $message = '*** ERROR *** Request not recognised.';
     } else {
-      $tool_provider->reason = 'Missing data';
+      $ok = saveCustomer($db, $customer);
+      if (!$ok) {
+        $message = '*** ERROR *** Unable to save details, please check data and try again.';
+      } else {
+        if (!isset($_SESSION['customer_id']) || ($_SESSION['customer_id'] != $customer['customer_id'])) {
+          $_SESSION['customer_id'] = $customer['customer_id'];
+          unset($_SESSION['lti_consumer_key']);
+        }
+        header('Location: consumer.php');
+        exit;
+      }
     }
-
-    return $ok;
-
+  } else if (isset($_GET['customer_id'])) {
+    $customer['customer_id'] = $_GET['customer_id'];
+    unset($_SESSION['customer_id']);
+    unset($_SESSION['lti_consumer_key']);
+  } else if (isset($_SESSION['customer_id'])) {
+    $customer = loadCustomer($db, $_SESSION['customer_id']);
+  } else {
+    $customer['customer_id'] = '';
+    $customer['qmwise_client_id'] = '';
+    $customer['qmwise_checksum'] = '';
   }
+
+  $script = <<< EOD
+<script type="text/javascript">
+<!--
+if (!String.prototype.trim) {
+ String.prototype.trim = function() {
+  return this.replace(/^\s+|\s+$/g,'');
+ }
+}
+
+function toggleShow(el) {
+  var el2 = document.getElementById(el.id.substring(0, el.id.length - 5));
+  try {
+    if (el2.type.toLowerCase() == 'password') {
+      el2.type = 'text';
+    } else {
+      el2.type = 'password';
+    }
+  } catch (err) {
+    var show_text = el2.getAttribute('type') == 'password';
+    var new_input = document.createElement('input');
+    with (new_input) {
+      id        = el2.id;
+      name      = el2.name;
+      value     = el2.value;
+      size      = el2.size;
+      className = el2.className;
+      type      = show_text ? 'text' : 'password';
+    }
+    el2.parentNode.replaceChild(new_input, el2);
+  }
+}
+
+function confirmDelete() {
+  return confirm('Are you sure you want to delete the LTI connector app for this repository?\\n\\nAll existing assessment links from Learning Management Systems configured with this\\nconnector will be removed.');
+}
+
+function checkForm() {
+  var el = document.getElementById('id_customer_id');
+  el.value = el.value.trim();
+  var ok = el.value.length > 0;
+  if (!ok) {
+    alert('Please enter a Customer ID or URL');
+    el.focus();
+  } else {
+    el = document.getElementById('id_qmwise_client_id');
+    el.value = el.value.trim();
+    var ok = el.value.length > 0;
+    if (!ok) {
+      alert('Please enter a QMWISe Client ID');
+      el.focus();
+    }
+  }
+  if (ok) {
+    el = document.getElementById('id_qmwise_checksum');
+    el.value = el.value.trim();
+    var ok = el.value.length > 0;
+    if (!ok) {
+      alert('Please enter a QMWISe Checksum');
+      el.focus();
+    } else if (el.value.length != 32) {
+      alert('The checksum should have a length of 32 characters');
+      el.focus();
+    }
+  }
+  return ok;
+}
+// -->
+</script>
+EOD;
+
+  page_header($script, TRUE);
+
+?>
+        <img src="images/exchange.gif" style="float: left; width: 50px; height: 50px; margin-right: 10px" />
+        <h1>LTI Connector App Settings</h1>
+
+<?php
+  if (isset($message)) {
+    echo "        <p style=\"font-weight: bold; color: #f00; clear: left;\">\n{$message}\n</p>\n";
+  } else {
+    echo "        <p style=\"clear: left;\">&nbsp;</p>\n";
+  }
+?>
+        <form action="index.php" method="POST" onsubmit="return checkForm()">
+
+        <div class="row">
+          <div class="col1">
+            Questionmark Customer ID (or URL): *
+          </div>
+          <div class="col2">
+            <img src="images/spacer.png" alt="" /><input type="text" id="id_customer_id" name="customer_id" value="<?php echo htmlentities($customer['customer_id']); ?>" size="75" />
+          </div>
+        </div>
+        <p>
+          This application also requires access to QMWISe:
+        </p>
+        <div class="row">
+          <div class="col1">
+            QMWISe Client ID: *
+          </div>
+          <div class="col2">
+            <img src="images/spacer.png" alt="" /><input type="text" id="id_qmwise_client_id" name="qmwise_client_id" value="<?php echo htmlentities($customer['qmwise_client_id']); ?>" size="20" maxlength="20" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col1">
+            QMWISe Checksum: *
+          </div>
+          <div class="col2">
+            <img src="images/spacer.png" alt="" /><input type="password" id="id_qmwise_checksum" name="qmwise_checksum" value="<?php echo htmlentities($customer['qmwise_checksum']); ?>" size="50" maxlength="32" />&nbsp;
+            <input type="checkbox" id="id_qmwise_checksum_show" onclick="toggleShow(this);" />&nbsp;Show&nbsp;checksum
+          </div>
+        </div>
+
+        <p>
+          <input id="id_delete" type="submit" name="action" value="Delete" onclick="return confirmDelete();" />
+          <input id="id_configure" type="submit" name="action" value="Configure" />
+        </p>
+
+        </form>
+<?php
+
+  page_footer(TRUE);
 
 ?>

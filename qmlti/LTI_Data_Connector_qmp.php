@@ -1,27 +1,28 @@
 <?php
 /*
  *  LTI-Connector - Connect to Perception via IMS LTI
- *  Copyright (C) 2012  Questionmark
+ *  Copyright (C) 2013  Questionmark
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  *  Contact: info@questionmark.com
  *
  *  Version history:
  *    1.0.00   1-May-12  Initial prototype
  *    1.2.00  23-Jul-12
+ *    2.0.00  18-Feb-13
 */
 
 ###
@@ -53,13 +54,43 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Tool_Consumer_load($consumer) {
 
-    $consumer->secret = CONSUMER_SECRET;
-    $consumer->enabled = TRUE;
-    $now = time();
-    $consumer->created = $now;
-    $consumer->updated = $now;
+    $ok = TRUE;
+    if (defined('CONSUMER_KEY')) {
+      $consumer->secret = CONSUMER_SECRET;
+      $consumer->enabled = TRUE;
+      $now = time();
+      $consumer->created = $now;
+      $consumer->updated = $now;
+    } else {
+      $sql = 'SELECT secret, consumer_name, customer_id, username_prefix, last_access, created, updated ' .
+             'FROM ' .$this->dbTableNamePrefix . LTI_Data_Connector::CONSUMER_TABLE_NAME . ' ' .
+             'WHERE consumer_key = :key';
+      $query = $this->db->prepare($sql);
+      $key = $consumer->getKey();
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $ok = $query->execute();
 
-    return TRUE;
+      if ($ok) {
+        $row = $query->fetch();
+        $ok = ($row !== FALSE);
+      }
+
+      if ($ok) {
+        $consumer->secret = $row['secret'];
+        $consumer->enabled = TRUE;
+        $consumer->consumer_name = $row['consumer_name'];
+        $consumer->custom['customer_id'] = $row['customer_id'];
+        $consumer->custom['username_prefix'] = $row['username_prefix'];
+        $consumer->last_access = NULL;
+        if (!is_null($row['last_access'])) {
+          $consumer->last_access = strtotime($row['last_access']);
+        }
+        $consumer->created = strtotime($row['created']);
+        $consumer->updated = strtotime($row['updated']);
+      }
+    }
+
+    return $ok;
 
   }
 
@@ -68,9 +99,56 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Tool_Consumer_save($consumer) {
 
-    $consumer->updated = time();
+    $ok = TRUE;
+    if (defined('CONSUMER_KEY')) {
+      $consumer->updated = time();
+    } else {
+      $time = time();
+      $now = date('Y-m-d H:i:s', $time);
+      $last = NULL;
+      if (!is_null($consumer->last_access)) {
+        $last = date('Y-m-d', $consumer->last_access);
+      }
+      $key = $consumer->getKey();
+      if (is_null($consumer->created)) {
+        $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONSUMER_TABLE_NAME . ' ' .
+               '(consumer_key, secret, consumer_name, customer_id, username_prefix, last_access, created, updated) ' .
+               'VALUES (:key, :secret, :consumer_name, :customer_id, :username_prefix, ' .
+               ':last_access, :created, :updated)';
+        $query = $this->db->prepare($sql);
+        $query->bindValue('key', $key, PDO::PARAM_STR);
+        $query->bindValue('secret', $consumer->secret, PDO::PARAM_STR);
+        $query->bindValue('consumer_name', $consumer->consumer_name, PDO::PARAM_STR);
+        $query->bindValue('customer_id', $consumer->custom['customer_id'], PDO::PARAM_STR);
+        $query->bindValue('username_prefix', $consumer->custom['username_prefix'], PDO::PARAM_STR);
+        $query->bindValue('last_access', $last, PDO::PARAM_STR);
+        $query->bindValue('created', $now, PDO::PARAM_STR);
+        $query->bindValue('updated', $now, PDO::PARAM_STR);
+      } else {
+        $sql = 'UPDATE ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONSUMER_TABLE_NAME . ' ' .
+               'SET secret = :secret, ' .
+               'consumer_name = :consumer_name, customer_id = :customer_id, username_prefix = :username_prefix, ' .
+               'last_access = :last_access, updated = :updated ' .
+               'WHERE consumer_key = :key';
+        $query = $this->db->prepare($sql);
+        $query->bindValue('key', $key, PDO::PARAM_STR);
+        $query->bindValue('secret', $consumer->secret, PDO::PARAM_STR);
+        $query->bindValue('consumer_name', $consumer->consumer_name, PDO::PARAM_STR);
+        $query->bindValue('customer_id', $consumer->custom['customer_id'], PDO::PARAM_STR);
+        $query->bindValue('username_prefix', $consumer->custom['username_prefix'], PDO::PARAM_STR);
+        $query->bindValue('last_access', $last, PDO::PARAM_STR);
+        $query->bindValue('updated', $now, PDO::PARAM_STR);
+      }
+      $ok = $query->execute();
+      if ($ok) {
+        if (is_null($consumer->created)) {
+          $consumer->created = $time;
+        }
+        $consumer->updated = $time;
+      }
+    }
 
-    return TRUE;
+    return $ok;
 
   }
 
@@ -79,12 +157,42 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 ###
   public function Tool_Consumer_delete($consumer) {
 
-// Delete any nonce values for this consumer
-    $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME;
-    $query = $this->db->prepare($sql);
-    $query->execute();
+    $ok = TRUE;
 
-    return TRUE;
+    if (defined('CONSUMER_KEY')) {
+
+// Delete any nonce values
+      $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME;
+      $query = $this->db->prepare($sql);
+      $query->execute();
+
+    } else {
+
+      $key = $consumer->getKey();
+// Delete any nonce values for this consumer
+      $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' WHERE consumer_key = :key';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $query->execute();
+
+// Delete any resource links for this consumer
+      $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' WHERE consumer_key = :key';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $query->execute();
+
+// Delete consumer
+      $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONSUMER_TABLE_NAME . ' WHERE consumer_key = :key';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $ok = $query->execute();
+    }
+
+    if ($ok) {
+      $consumer->initialise();
+    }
+
+    return $ok;
 
   }
 
@@ -95,25 +203,64 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 
     $consumers = array();
 
+    if (!defined('CONSUMER_KEY')) {
+
+      $sql = 'SELECT consumer_key, secret, consumer_name, customer_id, username_prefix, last_access, created, updated ' .
+             'FROM ' .$this->dbTableNamePrefix . LTI_Data_Connector::CONSUMER_TABLE_NAME;
+      $query = $this->db->prepare($sql);
+      $ok = ($query !== FALSE);
+
+      if ($ok) {
+        $ok = $query->execute();
+      }
+      if ($ok) {
+        while ($row = $query->fetch()) {
+          $consumer = new LTI_Tool_Consumer($row['consumer_key'], $this);
+          $consumer->secret = $row['secret'];
+          $consumer->consumer_name = $row['consumer_name'];
+          $consumer->custom['customer_id'] = $row['customer_id'];
+          $consumer->custom['username_prefix'] = $row['username_prefix'];
+          $consumer->last_access = NULL;
+          if (!is_null($row['last_access'])) {
+            $consumer->last_access = strtotime($row['last_access']);
+          }
+          $consumer->created = strtotime($row['created']);
+          $consumer->updated = strtotime($row['updated']);
+          $consumers[] = $consumer;
+        }
+      }
+    }
+
     return $consumers;
 
   }
 
 ###
-###  LTI_Context methods
+###  LTI_Resource_Link methods
 ###
 
 ###
-#    Load the context from the database
+#    Load the resource link from the database
 ###
-  public function Context_load($context) {
+  public function Resource_Link_load($resource_link) {
 
-    $id = $context->getId();
-    $sql = 'SELECT context_id, settings, created, updated ' .
-           'FROM ' .$this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-           'WHERE context_id = :id';
-    $query = $this->db->prepare($sql);
-    $query->bindValue('id', $id, PDO::PARAM_STR);
+    if (defined('CONSUMER_KEY')) {
+      $id = $resource_link->getId();
+      $sql = 'SELECT context_id, settings, created, updated ' .
+             'FROM ' .$this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+             'WHERE context_id = :id';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('id', $id, PDO::PARAM_STR);
+    } else {
+      $key = $resource_link->getKey();
+      $id = $resource_link->getId();
+      $sql = 'SELECT consumer_key, context_id, settings, created, updated ' .
+             'FROM ' .$this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+             'WHERE (consumer_key = :key) AND (context_id = :id)';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $query->bindValue('id', $id, PDO::PARAM_STR);
+    }
     $query->execute();
 
     $row = $query->fetch();
@@ -123,15 +270,15 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
     if ($ok) {
       $settingsValue = $row['settings'];
       if (!empty($settingsValue)) {
-        $context->settings = unserialize($settingsValue);
-        if (!is_array($context->settings)) {
-          $context->settings = array();
+        $resource_link->settings = unserialize($settingsValue);
+        if (!is_array($resource_link->settings)) {
+          $resource_link->settings = array();
         }
       } else {
-        $context->settings = array();
+        $resource_link->settings = array();
       }
-      $context->created = strtotime($row['created']);
-      $context->updated = strtotime($row['updated']);
+      $resource_link->created = strtotime($row['created']);
+      $resource_link->updated = strtotime($row['updated']);
     }
 
     return $ok;
@@ -139,30 +286,56 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
   }
 
 ###
-#    Save the context to the database
+#    Save the resource link to the database
 ###
-  public function Context_save($context) {
+  public function Resource_Link_save($resource_link) {
 
     $time = time();
     $now = date("Y-m-d H:i:s", $time);
-    $settingsValue = serialize($context->settings);
-    if (is_null($context->created)) {
-      $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-             '(context_id, settings, created, updated) VALUES (:id, :settings, :created, :updated)';
-      $query = $this->db->prepare($sql);
-      $query->bindValue('id', $context->getId(), PDO::PARAM_STR);
-      $query->bindValue('settings', $settingsValue, PDO::PARAM_INT);
-      $query->bindValue('created', $now, PDO::PARAM_STR);
-      $query->bindValue('updated', $now, PDO::PARAM_STR);
+    $settingsValue = serialize($resource_link->settings);
+    $id = $resource_link->getId();
+
+    if (defined('CONSUMER_KEY')) {
+      if (is_null($resource_link->created)) {
+        $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+               '(context_id, settings, created, updated) VALUES (:id, :settings, :created, :updated)';
+        $query = $this->db->prepare($sql);
+        $query->bindValue('id', $id, PDO::PARAM_STR);
+        $query->bindValue('settings', $settingsValue, PDO::PARAM_INT);
+        $query->bindValue('created', $now, PDO::PARAM_STR);
+        $query->bindValue('updated', $now, PDO::PARAM_STR);
+      } else {
+        $sql = 'UPDATE ' . $this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+               'SET settings = :settings, updated = :updated ' .
+               'WHERE context_id = :id';
+        $query = $this->db->prepare($sql);
+        $query->bindValue('id', $id, PDO::PARAM_STR);
+        $query->bindValue('settings', $settingsValue, PDO::PARAM_STR);
+        $query->bindValue('updated', $now, PDO::PARAM_STR);
+      }
     } else {
-      $sql = 'UPDATE ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-             'SET settings = :settings, updated = :updated ' .
-             'WHERE context_id = :id';
-      $query = $this->db->prepare($sql);
-      $query->bindValue('id', $context->getId(), PDO::PARAM_STR);
-      $query->bindValue('settings', $settingsValue, PDO::PARAM_STR);
-      $query->bindValue('updated', $now, PDO::PARAM_STR);
+      $key = $resource_link->getKey();
+      if (is_null($resource_link->created)) {
+        $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+               '(consumer_key, context_id, settings, created, updated) VALUES (:key, :id, :settings, :created, :updated)';
+        $query = $this->db->prepare($sql);
+        $query->bindValue('key', $key, PDO::PARAM_STR);
+        $query->bindValue('id', $id, PDO::PARAM_STR);
+        $query->bindValue('settings', $settingsValue, PDO::PARAM_INT);
+        $query->bindValue('created', $now, PDO::PARAM_STR);
+        $query->bindValue('updated', $now, PDO::PARAM_STR);
+      } else {
+        $sql = 'UPDATE ' . $this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+               'SET settings = :settings, updated = :updated ' .
+               'WHERE (consumer_key = :key) AND (context_id = :id)';
+        $query = $this->db->prepare($sql);
+        $query->bindValue('key', $key, PDO::PARAM_STR);
+        $query->bindValue('id', $id, PDO::PARAM_STR);
+        $query->bindValue('settings', $settingsValue, PDO::PARAM_STR);
+        $query->bindValue('updated', $now, PDO::PARAM_STR);
+      }
     }
+
     $ok = $query->execute();
 
     return $ok;
@@ -170,22 +343,30 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
   }
 
 ###
-#    Delete the context from the database
+#    Delete the resource link from the database
 ###
-  public function Context_delete($context) {
+  public function Resource_Link_delete($resource_link) {
 
-    $key = $context->getKey();
-    $id = $context->getId();
+    $id = $resource_link->getId();
+// Delete resource link
+    if (defined('CONSUMER_KEY')) {
+      $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+             'WHERE context_id = :id';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('id', $id, PDO::PARAM_STR);
+    } else {
+      $key = $resource_link->getKey();
+      $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::RESOURCE_LINK_TABLE_NAME . ' ' .
+             'WHERE (consumer_key = :key) AND (context_id = :id)';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $query->bindValue('id', $id, PDO::PARAM_STR);
+    }
 
-// Delete context
-    $sql = 'DELETE FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::CONTEXT_TABLE_NAME . ' ' .
-           'WHERE context_id = :id';
-    $query = $this->db->prepare($sql);
-    $query->bindValue('id', $id, PDO::PARAM_STR);
     $ok = $query->execute();
 
     if ($ok) {
-      $context->initialise();
+      $resource_link->initialise();
     }
 
     return $ok;
@@ -194,9 +375,9 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 
 ###
 #    Obtain an array of LTI_User objects for users with a result sourcedId.  The array may include users from other
-#    contexts which are sharing this context.  It may also be optionally indexed by the user ID of a specified scope.
+#    resource links which are sharing this resource link.  It may also be optionally indexed by the user ID of a specified scope.
 ###
-  public function Context_getUserResultSourcedIDs($context, $context_only, $id_scope) {
+  public function Resource_Link_getUserResultSourcedIDs($resource_link, $resource_link_only, $id_scope) {
 
     $users = array();
 
@@ -205,9 +386,9 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
   }
 
 ###
-#    Get an array of LTI_Context_Share objects for each context which is sharing this context
+#    Get an array of LTI_Resource_Link_Share objects for each resource link which is sharing this context
 ###
-  public function Context_getShares($context) {
+  public function Resource_Link_getShares($resource_link) {
 
     $shares = array();
 
@@ -237,12 +418,21 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 #
 ### load the nonce
 #
-    $key = $nonce->getKey();
     $value = $nonce->getValue();
-    $sql = 'SELECT value AS T FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' WHERE value = :value';
-    $query = $this->db->prepare($sql);
-    $query->bindValue('value', $value, PDO::PARAM_STR);
+    if (defined('CONSUMER_KEY')) {
+      $sql = 'SELECT value AS T FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' WHERE value = :value';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('value', $value, PDO::PARAM_STR);
+    } else {
+      $key = $nonce->getKey();
+      $sql = 'SELECT value AS T FROM ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' WHERE consumer_key = :key AND value = :value';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $query->bindValue('value', $value, PDO::PARAM_STR);
+    }
+
     $ok = $query->execute();
+
     if ($ok) {
       $row = $query->fetch();
       if ($row === FALSE) {
@@ -261,10 +451,21 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 
     $value = $nonce->getValue();
     $expires = date('Y-m-d H:i:s', $nonce->expires);
-    $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' (value, expires) VALUES (:value, :expires)';
-    $query = $this->db->prepare($sql);
-    $query->bindValue('value', $value, PDO::PARAM_STR);
-    $query->bindValue('expires', $expires, PDO::PARAM_STR);
+
+    if (defined('CONSUMER_KEY')) {
+      $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' (value, expires) VALUES (:value, :expires)';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('value', $value, PDO::PARAM_STR);
+      $query->bindValue('expires', $expires, PDO::PARAM_STR);
+    } else {
+      $key = $nonce->getKey();
+      $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::NONCE_TABLE_NAME . ' (consumer_key, value, expires) VALUES (:key, :value, :expires)';
+      $query = $this->db->prepare($sql);
+      $query->bindValue('key', $key, PDO::PARAM_STR);
+      $query->bindValue('value', $value, PDO::PARAM_STR);
+      $query->bindValue('expires', $expires, PDO::PARAM_STR);
+    }
+
     $ok = $query->execute();
 
     return $ok;
@@ -273,31 +474,31 @@ class LTI_Data_Connector_QMP extends LTI_Data_Connector {
 
 
 ###
-###  LTI_Context_Share_Key methods
+###  LTI_Resource_Link_Share_Key methods
 ###
 
 ###
-#    Load the context share key from the database
+#    Load the resource link share key from the database
 ###
-  public function Context_Share_Key_load($share_key) {
+  public function Resource_Link_Share_Key_load($share_key) {
 
     return FALSE;
 
   }
 
 ###
-#    Save the context share key to the database
+#    Save the resource link share key to the database
 ###
-  public function Context_Share_Key_save($share_key) {
+  public function Resource_Link_Share_Key_save($share_key) {
 
     return TRUE;
 
   }
 
 ###
-#    Delete the context share key from the database
+#    Delete the resource link share key from the database
 ###
-  public function Context_Share_Key_delete($share_key) {
+  public function Resource_Link_Share_Key_delete($share_key) {
 
     return TRUE;
 
